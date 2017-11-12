@@ -5,6 +5,5 @@ This plugin lets you create commands (joystick / hardware mapping) for the Fligh
 
 Examples are in the file config.cfg
 
-Have fun.
 
-Install into: X-Plane11/Resources/plugins
+Install into: Aircrafts/A320/plugins OR X-Plane11/Resources/plugins
