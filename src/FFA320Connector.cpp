@@ -35,7 +35,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.0.5";																			// Plugin-Version
+string					pluginversion = "1.0.6";																			// Plugin-Version
 
 #define					XPLM200 = 1;																						// SDK 2 Version
 #define					MSG_ADD_DATAREF 0x01000000																			// Add dataref to DRE message
@@ -51,6 +51,7 @@ const int				WORK_MODE_CLICK = 4;
 const int				WORK_MODE_ROTATE = 5;
 
 bool					plugindisabled = FALSE;																				// True if plugin is disabled
+bool					plugininitialized = FALSE;																			// Plugin Initialized? Set when Flightloop was called.
 XPLMPluginID			ffPluginID = XPLM_NO_PLUGIN_ID;
 SharedValuesInterface	ffAPI;
 int						g_menu_container_idx;																				// Menu Stuff
@@ -70,7 +71,8 @@ int						DrefValueInt[2000];																					// Stores the Dataref-Values (i
 float					DrefValueFloat[2000];																				// Stores the Dataref-Values (inRefcon points to here)
 bool					InternalDatarefUpdate = FALSE;																		// For recognition if it was an internal Dref update or not
 
-
+bool					DumpObjectsToLogActive = FALSE;
+void					DumpObjectsToLog();																					//Constructor
 /*
 * StringToObjectType
 *
@@ -291,7 +293,9 @@ PLUGIN_API int XPluginStart(
 	g_menu_container_idx = XPLMAppendMenuItem(XPLMFindPluginsMenu(), menu_title.c_str(), 0, 0);
 	g_menu_id = XPLMCreateMenu(menu_title.c_str(), XPLMFindPluginsMenu(), g_menu_container_idx, menu_handler, NULL);
 	XPLMAppendMenuItem(g_menu_id, "Reload Config", (void *)"Reload Config", 1);
+	XPLMAppendMenuSeparator(g_menu_id);
 	XPLMAppendMenuItem(g_menu_id, "Debug-Logging On/Off", (void *)"Debug-Logging On/Off", 1);
+	XPLMAppendMenuItem(g_menu_id, "Dump Objects to Log.txt", (void *)"Dump Objects to Log.txt", 1);
 
 	/* Initial Load */
 	LogWrite("==== FFA320 Connector loaded - Version " + pluginversion + " ====");
@@ -334,6 +338,10 @@ void menu_handler(void * in_menu_ref, void * in_item_ref)
 			LogWrite("==== FFA320 Connector / Debug-Logging ENABLED ====");
 			debugmode = true;
 		}
+	}
+	if (!strcmp((const char *)in_item_ref, "Dump Objects to Log.txt"))
+	{
+		DumpObjectsToLogActive = true;
 	}
 }
 
@@ -451,6 +459,126 @@ void UniversalDataRefSET_FLOAT(void* inRefcon, float inValue)
 
 	*my_var = inValue;
 }
+
+
+/*
+* DumpObjectsToLog
+*
+* Dumps all Objects and Parameters to the Log.txt
+*
+*/
+void DumpObjectsToLog() {
+	LogWrite("=============== DUMP OF ALL A320 OBJECTS AND PARAMETERS =================");
+	unsigned int valuesCount = ffAPI.ValuesCount();
+	int valueID = -1;
+	unsigned int ii = 0;
+	for (ii = 0; ii < valuesCount; ii++) {
+		int TmpParentID = -1;
+		int TmpValueID = -1;
+		string FullObjectName = "";
+		string Value = "NOT DISPLAYED";
+
+		char *valueName, *valueDescription, *parentValueName, *parent1ValueName, *parent2ValueName, *parent3ValueName;
+
+		valueID = ffAPI.ValueIdByIndex(ii);
+		valueName = (char *)ffAPI.ValueName(valueID);
+		valueDescription = (char *)ffAPI.ValueDesc(valueID);
+
+		unsigned int valueType = ffAPI.ValueType(valueID);
+		unsigned int valueFlag = ffAPI.ValueFlags(valueID);
+
+		int parentValueID = ffAPI.ValueParent(valueID);
+
+		TmpValueID = valueID;
+		TmpParentID = parentValueID;
+		while ((TmpParentID > 0) && (TmpValueID > 0)) {
+			TmpParentID = ffAPI.ValueParent(TmpValueID);
+			if ((TmpParentID >= 0) && (TmpValueID > 0)) FullObjectName = string((char *)ffAPI.ValueName(TmpParentID)) + string(".") + FullObjectName;
+			TmpValueID = TmpParentID;
+		}
+		FullObjectName += string(valueName);
+
+		char *valueTypeString;
+
+		if (valueType == Value_Type_Deleted) {
+			valueTypeString = "Deleted";
+		}
+		else if (valueType == Value_Type_Object) {
+			valueTypeString = "Object";
+			Value = "Base-Object";
+		}
+		else if (valueType == Value_Type_sint8) {
+			valueTypeString = "sint8";
+			int curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_uint8) {
+			valueTypeString = "uint8";
+			int curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_sint16) {
+			valueTypeString = "sint16";
+			int curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_uint16) {
+			valueTypeString = "uint16";
+			int curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_sint32) {
+			valueTypeString = "sint32";
+			int curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_uint32) {
+			valueTypeString = "uint32";
+			int curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_float32) {
+			valueTypeString = "float32";
+			float curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_float64) {
+			valueTypeString = "float64";
+			float curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = to_string(curval);
+		}
+		else if (valueType == Value_Type_String) {
+			valueTypeString = "String";
+			string curval;
+			ffAPI.ValueGet(valueID, &curval);
+			Value = curval;
+		}
+		else if (valueType == Value_Type_Time) {
+			valueTypeString = "Time";
+			Value = "Time-Value";
+		}
+		else {
+			valueTypeString = "UNKNOWN";
+		}
+
+		
+
+		LogWrite("#" + to_string(valueID) + ": " + FullObjectName + " - " + string(valueDescription) + " (" + valueTypeString + ")" + " Value-Flag: " + to_string(valueFlag) + " Value: " + Value);
+
+	}
+	LogWrite("=============== DUMP END =================");
+
+	DumpObjectsToLogActive = false;
+}
+
 
 /*
 * ReadIni
@@ -602,6 +730,11 @@ void ffAPIUpdateCallback(double step, void *tag) {
 
 	/* Leave if plugin was disabled */
 	if (plugindisabled == true) return;
+
+	/* When this is called, we know that the plugin is initialized correctly */
+	plugininitialized = true;
+
+	if (DumpObjectsToLogActive == true) DumpObjectsToLog();
 
 	/* Iterate thru the Objects and see what object needs to be updated */
 	list<DataObject>::iterator  iDataObjects;
