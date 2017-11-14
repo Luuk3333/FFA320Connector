@@ -4,13 +4,13 @@ This plugin adds a link between the FlightFactor A320
 internal variables to X-Plane Commands and Datarefs.
 You can define own commands or Datarefs in the config.cfg.
 
-# Download the stable version
+## Download the stable version
 
 If you are not interested in the sourcecode and you just
 want to download the compiled version, visit this Link:
-https://forums.x-plane.org/index.php?/files/file/40834-flightfactor-a320-connector-datarefsjoystick-commands/
+https://github.com/mokny/FFA320Connector/releases
 
-# Download Nightly Builds
+## Download Nightly Builds
 
 If you want to get the absolutely latest build, click "Clone or Download" and then "Download ZIP"
 Put the FFA320Connector folder from the bin directory into your A320's Plugins folder.
