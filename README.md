@@ -12,7 +12,7 @@ https://forums.x-plane.org/index.php?/files/file/40834-flightfactor-a320-connect
 
 # Download Nightly Builds
 
-If you want to get the absolutely latest build, click here: https://github.com/mokny/FFA320Connector/releases 
+If you want to get the absolutely latest build, click "Clone or Download" and then "Download ZIP"
 Put the FFA320Connector folder from the bin directory into your A320's Plugins folder.
 
 ## Installation
@@ -20,8 +20,12 @@ Put the FFA320Connector folder from the bin directory into your A320's Plugins f
 The folder FFA320Connector must be placed in the A320\plugins 
 folder, or in the main X-Plane\Resources\plugins folder.
 
-## Building the FFA320 Connector
+## Building the FFA320 Connector on Windows
 
 To build the FFA320 Connector, you need Visual C++ 2013 or
-later. I am searching for someone who is able to compile it
+later.
+
+## Building the FFA320 Connector on MaxOS
+
+I am urgently searching for someone who is able to compile it
 for Mac / Linux. Leave me a message at the X-Plane forums.

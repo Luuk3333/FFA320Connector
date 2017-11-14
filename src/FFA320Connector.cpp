@@ -8,20 +8,13 @@
 
 #pragma warning(disable: 4996)
 
-#include "XPLMDisplay.h"
-#include "XPLMGraphics.h"
 #include "XPLMDataAccess.h"
 #include "XPLMPlugin.h"
 #include "XPLMUtilities.h"
 #include "XPLMProcessing.h"
-#include "XPLMScenery.h"
 #include "XPLMMenus.h"
-#include "XPLMGraphics.h"
 #include "XPLMPlanes.h"
 #include "XPLMDataAccess.h"
-#include "XPLMNavigation.h"
-#include "XPWidgets.h"
-#include "XPStandardWidgets.h"
 #include <stdio.h>
 #include <algorithm>
 #include <string.h>
@@ -73,6 +66,7 @@ bool					InternalDatarefUpdate = FALSE;																		// For recognition if i
 
 bool					DumpObjectsToLogActive = FALSE;
 void					DumpObjectsToLog();																					//Constructor
+
 /*
 * StringToObjectType
 *
@@ -253,8 +247,9 @@ class DataObject {
 		}
 		
 		void destroy() {
-			/* Remove the CommandHandler */
-			XPLMUnregisterCommandHandler(CMD, UniversalCommandHandler, 0, 0);
+			/* Remove the CommandHandler + Dataref */
+			if (CMD != NULL) XPLMUnregisterCommandHandler(CMD, UniversalCommandHandler, 0, 0);
+			if (DREF != NULL) XPLMUnregisterDataAccessor(DREF);
 		}
 
 };
@@ -468,6 +463,7 @@ void DumpObjectsToLog() {
 	LogWrite("=============== DUMP OF ALL A320 OBJECTS AND PARAMETERS =================");
 	unsigned int valuesCount = ffAPI.ValuesCount();
 	int valueID = -1;
+
 	unsigned int ii = 0;
 	for (ii = 0; ii < valuesCount; ii++) {
 		int TmpParentID = -1;
@@ -477,68 +473,71 @@ void DumpObjectsToLog() {
 		char *valueName, *valueDescription;
 
 		valueID = ffAPI.ValueIdByIndex(ii);
-		valueName = (char *)ffAPI.ValueName(valueID);
-		valueDescription = (char *)ffAPI.ValueDesc(valueID);
 
-		unsigned int valueType = ffAPI.ValueType(valueID);
-		unsigned int valueFlag = ffAPI.ValueFlags(valueID);
+		if (valueID >= 0) { 
+			valueName = (char *)ffAPI.ValueName(valueID);
+			valueDescription = (char *)ffAPI.ValueDesc(valueID);
 
-		int parentValueID = ffAPI.ValueParent(valueID);
+			unsigned int valueType = ffAPI.ValueType(valueID);
+			unsigned int valueFlag = ffAPI.ValueFlags(valueID);
 
-		TmpValueID = valueID;
-		TmpParentID = parentValueID;
-		while ((TmpParentID > 0) && (TmpValueID > 0)) {
-			TmpParentID = ffAPI.ValueParent(TmpValueID);
-			if ((TmpParentID >= 0) && (TmpValueID > 0)) FullObjectName = string((char *)ffAPI.ValueName(TmpParentID)) + string(".") + FullObjectName;
-			TmpValueID = TmpParentID;
-		}
-		FullObjectName += string(valueName);
+			int parentValueID = ffAPI.ValueParent(valueID);
 
-		char *valueTypeString;
+			// Here we get all the parents to get the full name of the object
+			TmpValueID = valueID;
+			TmpParentID = parentValueID;
+			while ((TmpParentID > 0) && (TmpValueID > 0)) {
+				TmpParentID = ffAPI.ValueParent(TmpValueID);
+				if ((TmpParentID >= 0) && (TmpValueID >= 0)) FullObjectName = string((char *)ffAPI.ValueName(TmpParentID)) + string(".") + FullObjectName;
+				TmpValueID = TmpParentID;
+			}
+			FullObjectName += string(valueName);
 
-		if (valueType == Value_Type_Deleted) {
-			valueTypeString = "Deleted";
-		}
-		else if (valueType == Value_Type_Object) {
-			valueTypeString = "Object";
-		}
-		else if (valueType == Value_Type_sint8) {
-			valueTypeString = "sint8";
-		}
-		else if (valueType == Value_Type_uint8) {
-			valueTypeString = "uint8";
-		}
-		else if (valueType == Value_Type_sint16) {
-			valueTypeString = "sint16";
-		}
-		else if (valueType == Value_Type_uint16) {
-			valueTypeString = "uint16";
-		}
-		else if (valueType == Value_Type_sint32) {
-			valueTypeString = "sint32";
-		}
-		else if (valueType == Value_Type_uint32) {
-			valueTypeString = "uint32";
-		}
-		else if (valueType == Value_Type_float32) {
-			valueTypeString = "float32";
-		}
-		else if (valueType == Value_Type_float64) {
-			valueTypeString = "float64";
-		}
-		else if (valueType == Value_Type_String) {
-			valueTypeString = "String";
-		}
-		else if (valueType == Value_Type_Time) {
-			valueTypeString = "Time";
-		}
-		else {
-			valueTypeString = "UNKNOWN";
-		}
+			char *valueTypeString;
 
-		
+			if (valueType == Value_Type_Deleted) {
+				valueTypeString = "Deleted";
+			}
+			else if (valueType == Value_Type_Object) {
+				valueTypeString = "Object";
+			}
+			else if (valueType == Value_Type_sint8) {
+				valueTypeString = "sint8";
+			}
+			else if (valueType == Value_Type_uint8) {
+				valueTypeString = "uint8";
+			}
+			else if (valueType == Value_Type_sint16) {
+				valueTypeString = "sint16";
+			}
+			else if (valueType == Value_Type_uint16) {
+				valueTypeString = "uint16";
+			}
+			else if (valueType == Value_Type_sint32) {
+				valueTypeString = "sint32";
+			}
+			else if (valueType == Value_Type_uint32) {
+				valueTypeString = "uint32";
+			}
+			else if (valueType == Value_Type_float32) {
+				valueTypeString = "float32";
+			}
+			else if (valueType == Value_Type_float64) {
+				valueTypeString = "float64";
+			}
+			else if (valueType == Value_Type_String) {
+				valueTypeString = "String";
+			}
+			else if (valueType == Value_Type_Time) {
+				valueTypeString = "Time";
+			}
+			else {
+				valueTypeString = "UNKNOWN";
+			}
 
-		LogWrite("#" + to_string(valueID) + ": " + FullObjectName + " - " + string(valueDescription) + " (" + valueTypeString + ")" + " Value-Flag: " + to_string(valueFlag));
+			LogWrite("#" + to_string(valueID) + ": " + FullObjectName + " - " + string(valueDescription) + " (" + valueTypeString + ")" + " Value-Flag: " + to_string(valueFlag));
+
+		}
 
 	}
 	LogWrite("=============== DUMP END =================");
