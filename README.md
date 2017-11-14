@@ -25,7 +25,7 @@ folder, or in the main X-Plane\Resources\plugins folder.
 To build the FFA320 Connector, you need Visual C++ 2013 or
 later.
 
-## Building the FFA320 Connector on MaxOS
+## Building the FFA320 Connector on MacOS
 
 I am urgently searching for someone who is able to compile it
 for Mac / Linux. Leave me a message at the X-Plane forums.

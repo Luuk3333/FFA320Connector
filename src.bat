@@ -1,0 +1,1 @@
+copy src_vs2010\FFA320Connector.cpp src\FFA320Connector.cpp
