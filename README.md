@@ -17,8 +17,8 @@ Put the FFA320Connector folder from the bin directory into your A320's Plugins f
 
 ## Installation
 
-The folder FFA320Connector must be placed in the A320\plugins 
-folder, or in the main X-Plane\Resources\plugins folder.
+The folder FFA320Connector must be placed in the 
+''X-Plane\Aircrafts\A320\plugins'' folder. 
 
 ## Building the FFA320 Connector on Windows
 

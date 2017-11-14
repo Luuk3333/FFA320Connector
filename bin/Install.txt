@@ -1,0 +1,5 @@
+Copy the folder FFA320Connector to the plugin directory of your A320.
+
+So, in the end it should look like this:
+
+X-Plane\Aircrafts\A320\plugins\FFA320Connector
