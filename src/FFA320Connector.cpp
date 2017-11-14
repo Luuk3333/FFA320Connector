@@ -35,7 +35,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.0.6";																			// Plugin-Version
+string					pluginversion = "1.0.7";																			// Plugin-Version
 
 #define					XPLM200 = 1;																						// SDK 2 Version
 #define					MSG_ADD_DATAREF 0x01000000																			// Add dataref to DRE message
@@ -280,9 +280,6 @@ PLUGIN_API int XPluginStart(
 	char *		outSig,
 	char *		outDesc)
 {
-	XPLMMenuID	id;
-	int			item;
-
 	strcpy(outName, "FFA320-Connector");
 	strcpy(outSig, "mokny.a320connector");
 	strcpy(outDesc, "Plugin to supply Commands and Datarefs for the FlightFactor A320");
@@ -298,7 +295,7 @@ PLUGIN_API int XPluginStart(
 	XPLMAppendMenuItem(g_menu_id, "Dump Objects to Log.txt", (void *)"Dump Objects to Log.txt", 1);
 
 	/* Initial Load */
-	LogWrite("==== FFA320 Connector loaded - Version " + pluginversion + " ====");
+	LogWrite("==== FFA320 Connector loaded - Version " + pluginversion + " by mokny ====");
 
 	/* Read the Config */
 	ReadIni();
@@ -476,9 +473,8 @@ void DumpObjectsToLog() {
 		int TmpParentID = -1;
 		int TmpValueID = -1;
 		string FullObjectName = "";
-		string Value = "NOT DISPLAYED";
 
-		char *valueName, *valueDescription, *parentValueName, *parent1ValueName, *parent2ValueName, *parent3ValueName;
+		char *valueName, *valueDescription;
 
 		valueID = ffAPI.ValueIdByIndex(ii);
 		valueName = (char *)ffAPI.ValueName(valueID);
@@ -505,65 +501,36 @@ void DumpObjectsToLog() {
 		}
 		else if (valueType == Value_Type_Object) {
 			valueTypeString = "Object";
-			Value = "Base-Object";
 		}
 		else if (valueType == Value_Type_sint8) {
 			valueTypeString = "sint8";
-			int curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_uint8) {
 			valueTypeString = "uint8";
-			int curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_sint16) {
 			valueTypeString = "sint16";
-			int curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_uint16) {
 			valueTypeString = "uint16";
-			int curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_sint32) {
 			valueTypeString = "sint32";
-			int curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_uint32) {
 			valueTypeString = "uint32";
-			int curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_float32) {
 			valueTypeString = "float32";
-			float curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_float64) {
 			valueTypeString = "float64";
-			float curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = to_string(curval);
 		}
 		else if (valueType == Value_Type_String) {
 			valueTypeString = "String";
-			string curval;
-			ffAPI.ValueGet(valueID, &curval);
-			Value = curval;
 		}
 		else if (valueType == Value_Type_Time) {
 			valueTypeString = "Time";
-			Value = "Time-Value";
 		}
 		else {
 			valueTypeString = "UNKNOWN";
@@ -571,7 +538,7 @@ void DumpObjectsToLog() {
 
 		
 
-		LogWrite("#" + to_string(valueID) + ": " + FullObjectName + " - " + string(valueDescription) + " (" + valueTypeString + ")" + " Value-Flag: " + to_string(valueFlag) + " Value: " + Value);
+		LogWrite("#" + to_string(valueID) + ": " + FullObjectName + " - " + string(valueDescription) + " (" + valueTypeString + ")" + " Value-Flag: " + to_string(valueFlag));
 
 	}
 	LogWrite("=============== DUMP END =================");
