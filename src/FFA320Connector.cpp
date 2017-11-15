@@ -28,7 +28,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.0.7";																			// Plugin-Version
+string					pluginversion = "1.0.8";																			// Plugin-Version
 
 #define					XPLM200 = 1;																						// SDK 2 Version
 #define					MSG_ADD_DATAREF 0x01000000																			// Add dataref to DRE message
@@ -167,8 +167,11 @@ class DataObject {
 		bool		IsExistingDataRef;		// Is this a custom or foreign Dataref?
 		bool		IgnoreExistingDataRef;	// Ignore existing DataRef and create Handlers anyway
 		int			Value;					// Value or Change-Value for COMMAND
+		float		ValueFloat;				// Float Value for COMMAND
 		int			MinValue;				// MinValue for CYCLE, STEP -- or Reset-Value for CLICK
 		int			MaxValue;				// MaxValue for CYCLE, STEP 
+		float		MinValueFloat;			// MinValueFloat for CYCLE, STEP -- or Reset-Value for CLICK
+		float		MaxValueFloat;			// MaxValueFloat for CYCLE, STEP 
 		bool		Cycle;					// Cycle?
 		bool		NeedsUpdate;			// Tells the Flightloop if this object needs to be updated
 		bool		NeedsClickUpdate;		// After a Click, this must be true
@@ -639,12 +642,21 @@ void ReadIni() {
 						if (i == 3) NewObj.FFVar = token;
 						if (i == 4) NewObj.Command = token;
 						if (i == 5) NewObj.CommandName = token;
-						if (i == 6) NewObj.Value = stoi(token);
+						if (i == 6) {
+							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
+							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
+						}
 						if (i == 7) NewObj.FFID = stoi(token);
 						if (i == 8) NewObj.FFReference = token;
 						if (i == 9) NewObj.FFReferenceID = stoi(token);
-						if (i == 10) NewObj.MinValue = stoi(token);
-						if (i == 11) NewObj.MaxValue = stoi(token);
+						if (i == 10) {
+							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.MinValue = stoi(token);
+							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.MinValueFloat = stof(token);
+						}
+						if (i == 11) {
+							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.MaxValue = stoi(token);
+							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.MaxValueFloat = stof(token);
+						}
 						if (i == 12) NewObj.SpeedRef = stoi(token);
 						if (i == 13) NewObj.Phase = stoi(token);
 
@@ -710,7 +722,8 @@ void ffAPIUpdateCallback(double step, void *tag) {
 		/* Resetting the Click-Commands to the MinValue */
 		if (iDataObjects->NeedsClickUpdate == true) {
 			if (iDataObjects->ClickTimer <= 0) {
-				ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->MinValue);
+				if (iDataObjects->ValueType == VALUE_TYPE_INT) ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->MinValue);
+				if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->MinValueFloat);
 				iDataObjects->NeedsClickUpdate = false;
 			}
 			else {
@@ -738,45 +751,84 @@ void ffAPIUpdateCallback(double step, void *tag) {
 
 				/* Workmode SET */
 				if (iDataObjects->WorkMode == WORK_MODE_SET) {
-					ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->Value);
+					if (iDataObjects->ValueType == VALUE_TYPE_INT) ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->Value);
+					if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->ValueFloat);
 				}
 
 				/* Workmode STEP */
 				if (iDataObjects->WorkMode == WORK_MODE_STEP) {
-					int curval;
-					ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
+					if (iDataObjects->ValueType == VALUE_TYPE_INT) {
+						int curval;
+						ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
 
-					if ((curval + iDataObjects->Value <= iDataObjects->MaxValue) && (curval + iDataObjects->Value >= iDataObjects->MinValue)) {
-						int newval = curval + iDataObjects->Value;
-						ffAPI.ValueSet(iDataObjects->FFID, &newval);
+						if ((curval + iDataObjects->Value <= iDataObjects->MaxValue) && (curval + iDataObjects->Value >= iDataObjects->MinValue)) {
+							int newval = curval + iDataObjects->Value;
+							ffAPI.ValueSet(iDataObjects->FFID, &newval);
+						}
+					}
+					if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
+						float curval;
+						ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
+
+						if ((curval + iDataObjects->ValueFloat <= iDataObjects->MaxValueFloat) && (curval + iDataObjects->ValueFloat >= iDataObjects->MinValueFloat)) {
+							float newval = curval + iDataObjects->ValueFloat;
+							ffAPI.ValueSet(iDataObjects->FFID, &newval);
+						}
 					}
 				}
 
 				/* Workmode CYCLE */
 				if (iDataObjects->WorkMode == WORK_MODE_CYCLE) {
-					int curval;
-					ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
+					if (iDataObjects->ValueType == VALUE_TYPE_INT) {
+						int curval;
+						ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
 
-					int newval = curval + iDataObjects->Value;
-					if (newval > iDataObjects->MaxValue) newval = iDataObjects->MinValue;
-					if (newval < iDataObjects->MinValue) newval = iDataObjects->MaxValue;
+						int newval = curval + iDataObjects->Value;
+						if (newval > iDataObjects->MaxValue) newval = iDataObjects->MinValue;
+						if (newval < iDataObjects->MinValue) newval = iDataObjects->MaxValue;
 
-					ffAPI.ValueSet(iDataObjects->FFID, &newval);
+						ffAPI.ValueSet(iDataObjects->FFID, &newval);
+					}
+					if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
+						float curval;
+						ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
+
+						float newval = curval + iDataObjects->ValueFloat;
+						if (newval > iDataObjects->MaxValueFloat) newval = iDataObjects->MinValueFloat;
+						if (newval < iDataObjects->MinValueFloat) newval = iDataObjects->MaxValueFloat;
+
+						ffAPI.ValueSet(iDataObjects->FFID, &newval);
+					}
 				}
 
 				/* Workmode ROTATE */
 				if (iDataObjects->WorkMode == WORK_MODE_ROTATE) {
-					int curval;
-					ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
-					int newval = curval + iDataObjects->Value;
-					ffAPI.ValueSet(iDataObjects->FFID, &newval);
+					if (iDataObjects->ValueType == VALUE_TYPE_INT) {
+						int curval;
+						ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
+						int newval = curval + iDataObjects->Value;
+						ffAPI.ValueSet(iDataObjects->FFID, &newval);
+					}
+					if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
+						float curval;
+						ffAPI.ValueGet(iDataObjects->FFReferenceID, &curval);
+						float newval = curval + iDataObjects->ValueFloat;
+						ffAPI.ValueSet(iDataObjects->FFID, &newval);
+					}
 				}
 
 				/* Workmode CLICK */
 				if (iDataObjects->WorkMode == WORK_MODE_CLICK) {
-					ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->Value);
-					iDataObjects->NeedsClickUpdate = true;
-					iDataObjects->ClickTimer = 5;
+					if (iDataObjects->ValueType == VALUE_TYPE_INT) {
+						ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->Value);
+						iDataObjects->NeedsClickUpdate = true;
+						iDataObjects->ClickTimer = 5;
+					}
+					if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
+						ffAPI.ValueSet(iDataObjects->FFID, &iDataObjects->ValueFloat);
+						iDataObjects->NeedsClickUpdate = true;
+						iDataObjects->ClickTimer = 5;
+					}
 				}
 				iDataObjects->NeedsUpdate = false;
 			}
