@@ -66,6 +66,8 @@ bool					InternalDatarefUpdate = FALSE;																		// For recognition if i
 
 bool					DumpObjectsToLogActive = FALSE;
 void					DumpObjectsToLog();																					//Constructor
+void					DumpCommandsToLog();																				//Constructor
+void					DumpDatarefsToLog();																				//Constructor
 
 /*
 * StringToObjectType
@@ -290,7 +292,9 @@ PLUGIN_API int XPluginStart(
 	XPLMAppendMenuItem(g_menu_id, "Reload Config", (void *)"Reload Config", 1);
 	XPLMAppendMenuSeparator(g_menu_id);
 	XPLMAppendMenuItem(g_menu_id, "Debug-Logging On/Off", (void *)"Debug-Logging On/Off", 1);
-	XPLMAppendMenuItem(g_menu_id, "Dump Objects to Log.txt", (void *)"Dump Objects to Log.txt", 1);
+	XPLMAppendMenuItem(g_menu_id, "Dump A320-Objects to Log.txt", (void *)"Dump A320-Objects to Log.txt", 1);
+	XPLMAppendMenuItem(g_menu_id, "Dump Commands to Log.txt", (void *)"Dump Commands to Log.txt", 1);
+	XPLMAppendMenuItem(g_menu_id, "Dump Datarefs to Log.txt", (void *)"Dump Datarefs to Log.txt", 1);
 
 	/* Initial Load */
 	LogWrite("==== FFA320 Connector loaded - Version " + pluginversion + " by mokny ====");
@@ -334,9 +338,17 @@ void menu_handler(void * in_menu_ref, void * in_item_ref)
 			debugmode = true;
 		}
 	}
-	if (!strcmp((const char *)in_item_ref, "Dump Objects to Log.txt"))
+	if (!strcmp((const char *)in_item_ref, "Dump A320-Objects to Log.txt"))
 	{
 		DumpObjectsToLogActive = true;
+	}
+	if (!strcmp((const char *)in_item_ref, "Dump Commands to Log.txt"))
+	{
+		DumpCommandsToLog();
+	}
+	if (!strcmp((const char *)in_item_ref, "Dump Datarefs to Log.txt"))
+	{
+		DumpDatarefsToLog();
 	}
 }
 
@@ -455,6 +467,48 @@ void UniversalDataRefSET_FLOAT(void* inRefcon, float inValue)
 	*my_var = inValue;
 }
 
+
+
+/*
+* DumpCommandsToLog
+*
+* Dumps all commands to log.txt
+*
+*/
+void DumpCommandsToLog()
+{
+	LogWrite("=============== DUMP OF ALL COMMANDS =================");
+	list<DataObject>::iterator  iDataObjects;
+
+	for (iDataObjects = DataObjects.begin(); iDataObjects != DataObjects.end(); ++iDataObjects) {
+
+		if (iDataObjects->Type == OBJECT_TYPE_COMMAND) {
+			LogWrite(iDataObjects->CommandName + " (" + iDataObjects->Command + ")");
+		}
+	}
+	LogWrite("=============== DUMP END =================");
+}
+
+
+/*
+* DumpDatarefsToLog
+*
+* Dumps all commands to log.txt
+*
+*/
+void DumpDatarefsToLog()
+{
+	LogWrite("=============== DUMP OF ALL DATAREFS =================");
+	list<DataObject>::iterator  iDataObjects;
+
+	for (iDataObjects = DataObjects.begin(); iDataObjects != DataObjects.end(); ++iDataObjects) {
+
+		if (iDataObjects->Type == OBJECT_TYPE_DATAREF) {
+			LogWrite(iDataObjects->DataRef + " / " + to_string(iDataObjects->ValueType));
+		}
+	}
+	LogWrite("=============== DUMP END =================");
+}
 
 /*
 * DumpObjectsToLog
@@ -929,7 +983,7 @@ float PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int coun
 /*
 * XPluginStop
 *
-* Our cleanup routine deallocates our window.
+* Our cleanup routine.
 *
 */
 PLUGIN_API void	XPluginStop(void)
