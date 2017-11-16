@@ -28,13 +28,14 @@
 
 using namespace std;
 
-string					pluginversion = "1.0.8";																			// Plugin-Version
+string					pluginversion = "1.0.9";																			// Plugin-Version
 
 #define					XPLM200 = 1;																						// SDK 2 Version
 #define					MSG_ADD_DATAREF 0x01000000																			// Add dataref to DRE message
 
 const int				OBJECT_TYPE_COMMAND = 1;																			// Command Object
 const int				OBJECT_TYPE_DATAREF = 2;																			// Dataref Object
+const int				OBJECT_TYPE_COMMANDTODATAREF = 3;																	// Command to Dataref Object
 const int				VALUE_TYPE_INT = 1;																					// Integer Value														
 const int				VALUE_TYPE_FLOAT = 2;																				// Float Value
 const int				WORK_MODE_SET = 1;																					// Workmode Definitions
@@ -42,6 +43,8 @@ const int				WORK_MODE_STEP = 2;
 const int				WORK_MODE_CYCLE = 3;
 const int				WORK_MODE_CLICK = 4;
 const int				WORK_MODE_ROTATE = 5;
+const int				WORK_MODE_DOWN = 6;
+const int				WORK_MODE_UP = 7;
 
 bool					plugindisabled = FALSE;																				// True if plugin is disabled
 bool					plugininitialized = FALSE;																			// Plugin Initialized? Set when Flightloop was called.
@@ -79,6 +82,7 @@ int StringToObjectType(string s) {
 	transform(s.begin(), s.end(), s.begin(), ::toupper);
 	if (s == "COMMAND") return OBJECT_TYPE_COMMAND;
 	if (s == "DATAREF") return OBJECT_TYPE_DATAREF;
+	if (s == "COMDEF") return OBJECT_TYPE_COMMANDTODATAREF;
 	return 0;
 }
 
@@ -108,6 +112,8 @@ int StringToWorkMode(string s) {
 	if (s == "CYCLE") return WORK_MODE_CYCLE;
 	if (s == "CLICK") return WORK_MODE_CLICK;
 	if (s == "ROTATE") return WORK_MODE_ROTATE;
+	if (s == "DOWN") return WORK_MODE_DOWN;
+	if (s == "UP") return WORK_MODE_UP;
 	return 0;
 }
 
@@ -184,6 +190,10 @@ class DataObject {
 		int			RefConID;				// RefconID - The link between the DREF and UniversalGET
 		float		DataRefMultiplier;		// Dataref Multiplier
 
+		int			VarArrValues = 0;			
+		int			VarArrI[100];
+		float		VarArrF[100];
+
 		int*		pAdress;				// Pointer to the Integer Refcon
 		float*		pAdressf;				// Pointer to the Float Refcon
 
@@ -195,6 +205,15 @@ class DataObject {
 			if (Type == OBJECT_TYPE_COMMAND) {
 				LogWrite("Creating Command " + Command + " / " + to_string(WorkMode) + " / " + FFVar);
 				CMD = XPLMCreateCommand(Command.c_str(), CommandName.c_str());
+				XPLMRegisterCommandHandler(CMD, UniversalCommandHandler, 1, &Value);
+				NextUpdateCycle = 0;
+			}
+
+			/* Create the command to dataref */
+			if (Type == OBJECT_TYPE_COMMANDTODATAREF) {
+				LogWrite("Creating Comdef " + Command + " / " + to_string(WorkMode) + " / " + FFVar);
+				CMD = XPLMCreateCommand(Command.c_str(), CommandName.c_str());
+				DREF = XPLMFindDataRef(DataRef.c_str());
 				XPLMRegisterCommandHandler(CMD, UniversalCommandHandler, 1, &Value);
 				NextUpdateCycle = 0;
 			}
@@ -482,7 +501,7 @@ void DumpCommandsToLog()
 
 	for (iDataObjects = DataObjects.begin(); iDataObjects != DataObjects.end(); ++iDataObjects) {
 
-		if (iDataObjects->Type == OBJECT_TYPE_COMMAND) {
+		if ((iDataObjects->Type == OBJECT_TYPE_COMMAND) || (iDataObjects->Type == OBJECT_TYPE_COMMANDTODATAREF)) {
 			LogWrite(iDataObjects->CommandName + " (" + iDataObjects->Command + ")");
 		}
 	}
@@ -686,8 +705,10 @@ void ReadIni() {
 				while ((pos = s.find(delimiter)) != std::string::npos) {
 					token = s.substr(0, pos);
 
-					if ((i == 0) && (token == "COMMAND"))	NewObj.Type = StringToObjectType("COMMAND");
+					if (i == 0)	NewObj.Type = StringToObjectType(token);
+					/*if ((i == 0) && (token == "COMMAND"))	NewObj.Type = StringToObjectType("COMMAND");
 					if ((i == 0) && (token == "DATAREF"))	NewObj.Type = StringToObjectType("DATAREF");
+					if ((i == 0) && (token == "COMDEF"))	NewObj.Type = StringToObjectType("COMDEF");*/
 
 					//Command
 					if (NewObj.Type == OBJECT_TYPE_COMMAND) {
@@ -714,6 +735,29 @@ void ReadIni() {
 						if (i == 12) NewObj.SpeedRef = stoi(token);
 						if (i == 13) NewObj.Phase = stoi(token);
 
+						NewObj.NeedsUpdate = false;
+					}
+
+					//Command to Dataref
+					if (NewObj.Type == OBJECT_TYPE_COMMANDTODATAREF) {
+						if (i == 1) NewObj.WorkMode = StringToWorkMode(token);
+						if (i == 2) NewObj.ValueType = StringToValueType(token);
+						if (i == 3) NewObj.Phase = stoi(token);
+						if (i == 4) NewObj.Command = token;
+						if (i == 5) NewObj.CommandName = token;
+						if (i == 6) NewObj.DataRef = token;
+
+						if (i == 7) {
+							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
+							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
+						}
+						if (i >= 7){
+							if (token != "") {
+								if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.VarArrI[i - 7] = stoi(token);
+								if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.VarArrF[i - 7] = stof(token);
+								NewObj.VarArrValues++;
+							}
+						}
 						NewObj.NeedsUpdate = false;
 					}
 
@@ -787,15 +831,17 @@ void ffAPIUpdateCallback(double step, void *tag) {
 
 		/* The main interface between XP and the A320 */
 		if (iDataObjects->NeedsUpdate == true) {
-				
-			/* First find and set the Object-ID - This is only done once per Object (if needed) */
-			if (iDataObjects->FFID <= 0) {
-				iDataObjects->FFID = ffAPI.ValueIdByName(iDataObjects->FFVar.c_str());
-			}
+			
+			if ((iDataObjects->Type == OBJECT_TYPE_COMMAND) || (iDataObjects->Type == OBJECT_TYPE_DATAREF)) {
+				/* First find and set the Object-ID - This is only done once per Object (if needed) */
+				if (iDataObjects->FFID <= 0) {
+					iDataObjects->FFID = ffAPI.ValueIdByName(iDataObjects->FFVar.c_str());
+				}
 
-			/* First find and set the Object-Reference-ID - This is only done once per Object (if needed) */
-			if (iDataObjects->FFReferenceID <= 0) {
-				iDataObjects->FFReferenceID = ffAPI.ValueIdByName(iDataObjects->FFReference.c_str());
+				/* First find and set the Object-Reference-ID - This is only done once per Object (if needed) */
+				if (iDataObjects->FFReferenceID <= 0) {
+					iDataObjects->FFReferenceID = ffAPI.ValueIdByName(iDataObjects->FFReference.c_str());
+				}
 			}
 
 			/* Executed Commands are ported to the A320 here */
@@ -887,7 +933,80 @@ void ffAPIUpdateCallback(double step, void *tag) {
 				iDataObjects->NeedsUpdate = false;
 			}
 
-			/* Datarefs are hanlded here */
+
+			/* Executed Commands 2 Datarefs are processed here */
+			if (iDataObjects->Type == OBJECT_TYPE_COMMANDTODATAREF) {
+				
+				//Integer
+				if (iDataObjects->ValueType == VALUE_TYPE_INT) {
+					int curval = XPLMGetDatai(iDataObjects->DREF);
+
+					if (iDataObjects->WorkMode == WORK_MODE_UP) {
+						for (int i = 0; i < iDataObjects->VarArrValues; ++i) {
+							if ((curval >= iDataObjects->VarArrI[i]) && (i + 1 <= iDataObjects->VarArrValues - 1)) {
+								if (curval < iDataObjects->VarArrI[i + 1]) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->VarArrI[i + 1]);
+									break;
+								}
+							}
+						}
+					}
+
+					if (iDataObjects->WorkMode == WORK_MODE_DOWN) {
+						for (int i = 0; i < iDataObjects->VarArrValues; ++i) {
+							if ((curval <= iDataObjects->VarArrI[i]) && (i - 1 >= 0)) {
+								if (curval > iDataObjects->VarArrI[i - 1]) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->VarArrI[i - 1]);
+									break;
+								}
+							}
+						}
+					}
+
+					if (iDataObjects->WorkMode == WORK_MODE_SET) {
+						XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value);
+					}
+				}
+
+				//Float
+				if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
+					float curval = XPLMGetDataf(iDataObjects->DREF);
+
+					if (iDataObjects->WorkMode == WORK_MODE_UP) {
+						for (int i = 0; i < iDataObjects->VarArrValues; ++i) {
+							if ((curval >= iDataObjects->VarArrF[i]) && (i + 1 <= iDataObjects->VarArrValues - 1)) {
+								if (curval < iDataObjects->VarArrF[i+1]) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->VarArrF[i + 1]);
+									break;
+								}
+							}
+						}
+					}
+
+					if (iDataObjects->WorkMode == WORK_MODE_DOWN) {
+						for (int i = 0; i < iDataObjects->VarArrValues; ++i) {
+							if ((curval <= iDataObjects->VarArrF[i]) && (i - 1 >= 0)) {
+								if (curval > iDataObjects->VarArrF[i - 1]) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->VarArrF[i - 1]);
+									break;
+								}
+							}
+						}
+					}
+
+					if (iDataObjects->WorkMode == WORK_MODE_SET) {
+						XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat);
+					}
+
+				}
+
+				iDataObjects->SpeedRef = 0;
+				iDataObjects->NextUpdateCycle = 0;
+				iDataObjects->NeedsUpdate = false;
+			}
+
+
+			/* Datarefs are handled here */
 			if (iDataObjects->Type == OBJECT_TYPE_DATAREF) {
 				DebugOut("Updating DATAREF " + iDataObjects->DataRef  + " - " + to_string(iDataObjects->ValueType) + " - " + iDataObjects->FFVar);
 				
