@@ -50,6 +50,13 @@ const int				WORK_MODE_CLICK = 4;
 const int				WORK_MODE_ROTATE = 5;
 const int				WORK_MODE_DOWN = 6;
 const int				WORK_MODE_UP = 7;
+const int				CONDITION_NONE = 0;
+const int				CONDITION_EQUALS = 9;
+const int				CONDITION_GREATER = 10;
+const int				CONDITION_LOWER = 11;
+const int				CONDITION_NOTEQUAL = 12;
+const int				CONDITION_GREATER_EQUAL = 13;
+const int				CONDITION_LOWER_EQUAL = 14;
 
 bool					plugindisabled = FALSE;																				// True if plugin is disabled
 bool					plugininitialized = FALSE;																			// Plugin Initialized? Set when Flightloop was called.
@@ -121,6 +128,24 @@ int StringToWorkMode(string s) {
 	if (s == "UP") return WORK_MODE_UP;
 	return 0;
 }
+
+/*
+* StringToCondition
+*
+* Converts a string to the defined Condition
+*
+*/
+int StringToCondition(string s) {
+	transform(s.begin(), s.end(), s.begin(), ::toupper);
+	if (s == "=") return CONDITION_EQUALS;
+	if (s == ">") return CONDITION_GREATER;
+	if (s == ">=") return CONDITION_GREATER_EQUAL;
+	if (s == "<=") return CONDITION_LOWER_EQUAL;
+	if (s == "<") return CONDITION_LOWER;
+	if (s == "!=") return CONDITION_NOTEQUAL;
+	return CONDITION_NONE;
+}
+
 
 /*
 * DebugOut
@@ -282,6 +307,9 @@ class DataObject {
 		int			VarArrI[100];
 		float		VarArrF[100];
 
+		int			DatarefCondition = 0;
+		float		DatarefConditionValue = 0;
+		
 		int*		pAdress;				// Pointer to the Integer Refcon
 		float*		pAdressf;				// Pointer to the Float Refcon
 
@@ -840,6 +868,7 @@ void ReadConfig(string filename) {
 								NewObj.VarArrValues++;
 							}
 						}
+						
 						NewObj.NeedsUpdate = false;
 					}
 
@@ -857,6 +886,13 @@ void ReadConfig(string filename) {
 							string normdref = NewObj.FFVar;
 							replace(normdref.begin(), normdref.end(), '.', '/');
 							NewObj.DataRef = "MOKNY/FFA320/" + normdref;
+						}
+
+						if (i == 8) NewObj.DatarefCondition = StringToCondition(token);
+						if (i == 9) NewObj.DatarefConditionValue = stof(token);
+						if (i == 10) {
+							if (NewObj.DataRefValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
+							if (NewObj.DataRefValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
 						}
 
 						NewObj.NeedsUpdate = true;
@@ -1094,28 +1130,82 @@ void ffAPIUpdateCallback(double step, void *tag) {
 				
 				InternalDatarefUpdate = true;	// While this is true, no external DataRef-Updates are triggered. Otherwise we can not decide if the update
 												// comes from an external source or from this plugin.
-	
-				// Set the Dataref according to the Dataref Value Type INT / FLOAT
-				if (iDataObjects->DataRefValueType == VALUE_TYPE_INT)  {
-					DebugOut(" -> INT TO INT");
+
+				// No conditions
+				if (iDataObjects->DatarefCondition == CONDITION_NONE) {
+					// Set the Dataref according to the Dataref Value Type INT / FLOAT
+					if (iDataObjects->DataRefValueType == VALUE_TYPE_INT)  {
+						DebugOut(" -> INT TO INT");
+						void* curval;
+						ffAPI.ValueGet(iDataObjects->FFID, &curval);
+						XPLMSetDatai(iDataObjects->DREF, (int)curval * iDataObjects->DataRefMultiplier);
+					}
+
+					if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
+
+						//Read the A320 Data in the specific format
+						if (iDataObjects->ValueType == VALUE_TYPE_INT) {
+							DebugOut(" -> INT TO FLOAT");
+							int icurval;
+							ffAPI.ValueGet(iDataObjects->FFID, &icurval);
+							XPLMSetDataf(iDataObjects->DREF, (float)icurval * iDataObjects->DataRefMultiplier);
+						}
+						else if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
+							DebugOut(" -> FLOAT TO FLOAT");
+							float fcurval;
+							ffAPI.ValueGet(iDataObjects->FFID, &fcurval);
+							XPLMSetDataf(iDataObjects->DREF, fcurval * iDataObjects->DataRefMultiplier);
+						}
+
+					}
+
+				}
+				// With condition
+				else {
+
 					void* curval;
 					ffAPI.ValueGet(iDataObjects->FFID, &curval);
-					XPLMSetDatai(iDataObjects->DREF, (int)curval * iDataObjects->DataRefMultiplier);
-				}
-				
-				if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
-					
-					//Read the A320 Data in the specific format
-					if (iDataObjects->ValueType == VALUE_TYPE_INT) {
-						DebugOut(" -> INT TO FLOAT");
-						int icurval;
-						ffAPI.ValueGet(iDataObjects->FFID, &icurval);
-						XPLMSetDataf(iDataObjects->DREF, (float)icurval * iDataObjects->DataRefMultiplier);
-					} else if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
-						DebugOut(" -> FLOAT TO FLOAT");
-						float fcurval;
-						ffAPI.ValueGet(iDataObjects->FFID, &fcurval);
-						XPLMSetDataf(iDataObjects->DREF, fcurval * iDataObjects->DataRefMultiplier);
+
+					if (iDataObjects->DatarefCondition == CONDITION_EQUALS) {
+						if ((int)curval == iDataObjects->DatarefConditionValue) {
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+						}
+					}
+
+					if (iDataObjects->DatarefCondition == CONDITION_GREATER) {
+						if ((int)curval > iDataObjects->DatarefConditionValue) {
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+						}
+					}
+
+					if (iDataObjects->DatarefCondition == CONDITION_LOWER) {
+						if ((int)curval < iDataObjects->DatarefConditionValue) {
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+						}
+					}
+
+					if (iDataObjects->DatarefCondition == CONDITION_NOTEQUAL) {
+						if ((int)curval != iDataObjects->DatarefConditionValue) {
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+						}
+					}
+
+					if (iDataObjects->DatarefCondition == CONDITION_GREATER_EQUAL) {
+						if ((int)curval >= iDataObjects->DatarefConditionValue) {
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+						}
+					}
+
+					if (iDataObjects->DatarefCondition == CONDITION_LOWER_EQUAL) {
+						if ((int)curval <= iDataObjects->DatarefConditionValue) {
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+						}
 					}
 					
 				}
