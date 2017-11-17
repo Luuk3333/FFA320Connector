@@ -28,7 +28,12 @@
 
 using namespace std;
 
-string					pluginversion = "1.0.9";																			// Plugin-Version
+string					pluginversion = "1.1.0";																			// Plugin-Version
+
+string					pluginpath;
+string					aircraftpath;
+string					defaultconfigpath;
+string					customconfigpath;
 
 #define					XPLM200 = 1;																						// SDK 2 Version
 #define					MSG_ADD_DATAREF 0x01000000																			// Add dataref to DRE message
@@ -150,6 +155,89 @@ void LogWrite(string text) {
 inline bool file_exists(const std::string& name) {
 	ifstream f(name.c_str());
 	return f.good();
+}
+
+/*
+* get_paths
+*
+* Set the Path-Variables
+*
+*/
+void get_paths() {
+	bool defaultconfigfound = false;
+	bool customconfigfound = false;
+	defaultconfigpath = "";
+	customconfigpath = "";
+	aircraftpath = "";
+
+	/* Getting the Aircraft Directory */
+	char cacfilename[256] = { 0 };
+	char cacpath[512] = { 0 };
+	XPLMGetNthAircraftModel(0, cacfilename, cacpath);
+
+	aircraftpath = string(cacpath).substr(0, string(cacpath).find_last_of("\\/"));	// Remove the Filename from the complete path
+
+	// CONFIG.CFG
+
+	/* Check in Aircraft Plugins folder */
+	if (file_exists(aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "config.cfg")) {
+		defaultconfigpath = aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "config.cfg";
+		defaultconfigfound = true;
+	}
+	
+	/* Check in Default-Plugin Folder */
+	if (!defaultconfigfound) {
+		char PluginINIFile[512];
+		XPLMGetSystemPath(PluginINIFile);
+		strcat(PluginINIFile, "Resources");
+		strcat(PluginINIFile, XPLMGetDirectorySeparator());
+		strcat(PluginINIFile, "plugins");
+		strcat(PluginINIFile, XPLMGetDirectorySeparator());
+		strcat(PluginINIFile, "FFA320Connector");
+		strcat(PluginINIFile, XPLMGetDirectorySeparator());
+		strcat(PluginINIFile, "config.cfg");
+		string defaultfolderfilename = string(PluginINIFile);
+
+		/* defaultconfigpath */
+		if (file_exists(defaultfolderfilename)) {
+			defaultconfigpath = defaultfolderfilename;
+			defaultconfigfound = true;
+		}
+	}
+
+	/* Check in Aircraft Plugins folder */
+	if (file_exists(aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "custom.cfg")) {
+		customconfigpath = aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "custom.cfg";
+		customconfigfound = true;
+	}
+
+	// CUSTOM.CFG
+
+	/* Check in Default-Plugin Folder */
+	if (!customconfigfound) {
+		char PluginINIFile[512];
+		XPLMGetSystemPath(PluginINIFile);
+		strcat(PluginINIFile, "Resources");
+		strcat(PluginINIFile, XPLMGetDirectorySeparator());
+		strcat(PluginINIFile, "plugins");
+		strcat(PluginINIFile, XPLMGetDirectorySeparator());
+		strcat(PluginINIFile, "FFA320Connector");
+		strcat(PluginINIFile, XPLMGetDirectorySeparator());
+		strcat(PluginINIFile, "custom.cfg");
+		string defaultfolderfilename = string(PluginINIFile);
+
+		/* defaultconfigpath */
+		if (file_exists(defaultfolderfilename)) {
+			customconfigpath = defaultfolderfilename;
+			customconfigfound = true;
+		}
+	}
+
+	if (!defaultconfigfound && !customconfigfound) {
+		LogWrite("#####################################################");
+		LogWrite("# MISSING CONFIG FILES!                             #");
+		LogWrite("#####################################################");
+	}
 }
 
 /*
@@ -281,7 +369,8 @@ class DataObject {
 
 
 list<DataObject>	DataObjects;													// This list contains all Data-Objects
-void				ReadIni();														// Constructor 
+void				ReadConfigs();
+void				ReadConfig(string filename);
 void				ffAPIUpdateCallback(double step, void *tag);					// FFAPI Constructor
 
 
@@ -319,7 +408,7 @@ PLUGIN_API int XPluginStart(
 	LogWrite("==== FFA320 Connector loaded - Version " + pluginversion + " by mokny ====");
 
 	/* Read the Config */
-	ReadIni();
+	ReadConfigs();
 
 	/* Register the Flightloop */
 	XPLMRegisterFlightLoopCallback(PluginCustomFlightLoopCallback, 1, NULL); 
@@ -344,7 +433,7 @@ void menu_handler(void * in_menu_ref, void * in_item_ref)
 	if (!strcmp((const char *)in_item_ref, "Reload Config"))
 	{
 		LogWrite("==== FFA320 Connector / Reloaded Config ====");
-		ReadIni();
+		ReadConfigs();
 	}
 	if (!strcmp((const char *)in_item_ref, "Debug-Logging On/Off"))
 	{
@@ -622,16 +711,20 @@ void DumpObjectsToLog() {
 }
 
 
+
+
 /*
-* ReadIni
+* ReadConfigs
 *
-* Reads the ini from plugin or aircraft directory and initializes the DataObjects
+* Reads the config files
 *
 */
-void ReadIni() {
-	
+void ReadConfigs() {
 	/* Leave if plugin was disabled */
 	if (plugindisabled == true) return;
+
+	/* Set the paths */
+	get_paths();
 
 	/* First destroy and clear all Objects */
 	list<DataObject>::iterator  iDataObjects;
@@ -641,43 +734,32 @@ void ReadIni() {
 	}
 	DataObjects.clear();
 
-	/* Where is our config file? */
-	string filename;
+	if (defaultconfigpath != "") ReadConfig(defaultconfigpath);
+	if (customconfigpath != "") ReadConfig(customconfigpath);
+}
 
-	/* Getting the Aircraft Directory */
-	char cacfilename[256] = { 0 };
-	char cacpath[512] = { 0 };
-	XPLMGetNthAircraftModel(0, cacfilename, cacpath);
-	string aircraft_path = string(cacpath).substr(0, string(cacpath).find_last_of("\\/"));	// Remove the Filename from the complete path
+
+/*
+* ReadConfig
+*
+* Reads the cfg from plugin or aircraft directory and initializes the DataObjects
+*
+*/
+void ReadConfig(string filename) {
 	
-	/* Check if the plugin is in the Aircraft Directory */
-	if (file_exists(aircraft_path + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "config.cfg")) {
-		filename = aircraft_path + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "config.cfg";
-		LogWrite("Plugin is installed in the Aircraft-Directory. Reading Config from " + filename);
-	}
-	/* Or in the main plugin directory */
-	else {
-		/* Getting the Main plugins Directory */
-		char PluginINIFile[512];
-		XPLMGetSystemPath(PluginINIFile);
-		strcat(PluginINIFile, "Resources");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "plugins");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "FFA320Connector");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "config.cfg");
-		filename = string(PluginINIFile);
-		LogWrite("Plugin is installed in the main Plugins-Directory. Reading Config from " + filename);
-	}
+	/* Leave if plugin was disabled */
+	if (plugindisabled == true) return;
 
 
 	ifstream input(filename.c_str());
 
 	if (!input)
 	{
-		LogWrite("==== ERROR: COULD NOT READ CONFIG ===");
+		LogWrite("==== ERROR: COULD NOT READ " + filename + " ===");
 		return;
+	}
+	else {
+		LogWrite(" - Reading " + filename);
 	}
 
 	string line;
@@ -1107,7 +1189,8 @@ float PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int coun
 */
 PLUGIN_API void	XPluginStop(void)
 {
-	
+	LogWrite("Plugin stopped.");
+
 	/*********
 		I had to uncomment the following lines, otherwise the
 		plugin would crash XP when exiting from the initial menu or
@@ -1135,6 +1218,7 @@ PLUGIN_API void	XPluginStop(void)
 */
 PLUGIN_API void XPluginDisable(void)
 {
+	LogWrite("Plugin disabled.");
 	plugindisabled = true;
 }
 
@@ -1147,6 +1231,7 @@ PLUGIN_API void XPluginDisable(void)
 */
 PLUGIN_API int XPluginEnable(void)
 {
+	LogWrite("Plugin enabled.");
 	plugindisabled = false;
 	return 1;
 }
