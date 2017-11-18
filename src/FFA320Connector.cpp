@@ -60,6 +60,7 @@ const int				CONDITION_LOWER_EQUAL = 14;
 
 bool					plugindisabled = false;																				// True if plugin is disabled
 bool					plugininitialized = false;																			// Plugin Initialized? Set when Flightloop was called.
+
 XPLMPluginID			ffPluginID = XPLM_NO_PLUGIN_ID;
 SharedValuesInterface	ffAPI;
 int						g_menu_container_idx;																				// Menu Stuff
@@ -435,11 +436,11 @@ PLUGIN_API int XPluginStart(
 	/* Initial Load */
 	LogWrite("==== FFA320 Connector loaded - Version " + pluginversion + " by mokny ====");
 
-	/* Read the Config */
-	ReadConfigs();
-
 	/* Register the Flightloop */
 	XPLMRegisterFlightLoopCallback(PluginCustomFlightLoopCallback, 1, NULL); 
+
+	/* Read the Config */
+	ReadConfigs();
 
 	/* We are not disabled, right? */
 	plugindisabled = false;
@@ -496,6 +497,8 @@ void menu_handler(void * in_menu_ref, void * in_item_ref)
 */
 int UniversalCommandHandler(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void * inRefcon)
 {
+	if (!plugininitialized) return 0;
+
 	list<DataObject>::iterator  iDataObjects;
 
 	for (iDataObjects = DataObjects.begin(); iDataObjects != DataObjects.end(); ++iDataObjects) {
@@ -529,6 +532,8 @@ int UniversalDataRefGET_INT(void* inRefcon)
 /* Universal Dataref SET Handler */
 void UniversalDataRefSET_INT(void* inRefcon, int inValue)
 {
+	if (!plugininitialized) return;
+
 	int * my_var = (int *)inRefcon;
 
 	if (InternalDatarefUpdate == false) {
@@ -573,6 +578,8 @@ float UniversalDataRefGET_FLOAT(void* inRefcon)
 /* Universal Dataref SET Handler */
 void UniversalDataRefSET_FLOAT(void* inRefcon, float inValue)
 {
+	if (!plugininitialized) return;
+
 	float * my_var = (float *)inRefcon;
 
 	if (InternalDatarefUpdate == false) {
@@ -920,8 +927,12 @@ void ffAPIUpdateCallback(double step, void *tag) {
 	/* Leave if plugin was disabled */
 	if (plugindisabled == true) return;
 
-	/* When this is called, we know that the plugin is initialized correctly */
-	plugininitialized = true;
+	/* When this is called, we know that the plugin is initialized correctly  */
+	if (!plugininitialized) {
+		LogWrite("Initialized.");
+		plugininitialized = true;
+	}
+	
 
 	if (DumpObjectsToLogActive == true) DumpObjectsToLog();
 
@@ -1225,6 +1236,7 @@ void ffAPIUpdateCallback(double step, void *tag) {
 */
 float PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int counter, void * refcon)
 {
+	
 	/* Export the Datarefs to the DRE */
 	list<DataObject>::iterator  iDataObjects;
 	XPLMPluginID PluginID = XPLMFindPluginBySignature("xplanesdk.examples.DataRefEditor");
@@ -1252,6 +1264,7 @@ float PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int coun
 	if (ffAPI.DataAddUpdate != NULL) {
 		tag = "ffa320connector";
 		ffAPI.DataAddUpdate(&ffAPIUpdateCallback, tag);
+		LogWrite("Callback registered.");
 		return 0;
 	}
 
@@ -1275,8 +1288,9 @@ float PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int coun
 */
 PLUGIN_API void	XPluginStop(void)
 {
-	LogWrite("Plugin stopped.");
+	LogWrite("Stopped.");
 
+	plugininitialized = false;
 	/*********
 		I had to uncomment the following lines, otherwise the
 		plugin would crash XP when exiting from the initial menu or
@@ -1304,7 +1318,7 @@ PLUGIN_API void	XPluginStop(void)
 */
 PLUGIN_API void XPluginDisable(void)
 {
-	LogWrite("Plugin disabled.");
+	LogWrite("Disabled.");
 	plugindisabled = true;
 }
 
@@ -1317,7 +1331,7 @@ PLUGIN_API void XPluginDisable(void)
 */
 PLUGIN_API int XPluginEnable(void)
 {
-	LogWrite("Plugin enabled.");
+	LogWrite("Enabled.");
 	plugindisabled = false;
 	return 1;
 }
@@ -1333,4 +1347,5 @@ PLUGIN_API void XPluginReceiveMessage(
 	int				inMessage,
 	void *			inParam)
 {
+	LogWrite("Message Received.");
 }
