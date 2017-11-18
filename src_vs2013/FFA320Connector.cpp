@@ -28,7 +28,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.1.1";																			// Plugin-Version
+string					pluginversion = "1.1.2";																			// Plugin-Version
 
 string					pluginpath;
 string					aircraftpath;
@@ -1144,7 +1144,7 @@ void ffAPIUpdateCallback(double step, void *tag) {
 						DebugOut(" -> INT TO INT");
 						void* curval;
 						ffAPI.ValueGet(iDataObjects->FFID, &curval);
-						XPLMSetDatai(iDataObjects->DREF, (int)curval * iDataObjects->DataRefMultiplier);
+						XPLMSetDatai(iDataObjects->DREF, (int)(size_t)curval * iDataObjects->DataRefMultiplier);
 					}
 
 					if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
@@ -1173,42 +1173,42 @@ void ffAPIUpdateCallback(double step, void *tag) {
 					ffAPI.ValueGet(iDataObjects->FFID, &curval);
 
 					if (iDataObjects->DatarefCondition == CONDITION_EQUALS) {
-						if ((int)curval == iDataObjects->DatarefConditionValue) {
+						if ((int)(size_t)curval == iDataObjects->DatarefConditionValue) {
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_GREATER) {
-						if ((int)curval > iDataObjects->DatarefConditionValue) {
+						if ((int)(size_t)curval > iDataObjects->DatarefConditionValue) {
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_LOWER) {
-						if ((int)curval < iDataObjects->DatarefConditionValue) {
+						if ((int)(size_t)curval < iDataObjects->DatarefConditionValue) {
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_NOTEQUAL) {
-						if ((int)curval != iDataObjects->DatarefConditionValue) {
+						if ((int)(size_t)curval != iDataObjects->DatarefConditionValue) {
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_GREATER_EQUAL) {
-						if ((int)curval >= iDataObjects->DatarefConditionValue) {
+						if ((int)(size_t)curval >= iDataObjects->DatarefConditionValue) {
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_LOWER_EQUAL) {
-						if ((int)curval <= iDataObjects->DatarefConditionValue) {
+						if ((int)(size_t)curval <= iDataObjects->DatarefConditionValue) {
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
 							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
 						}
@@ -1262,7 +1262,7 @@ float PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int coun
 	}
 
 	if (ffAPI.DataAddUpdate != NULL) {
-		tag = "ffa320connector";
+		tag = (void*)"ffa320connector";
 		ffAPI.DataAddUpdate(&ffAPIUpdateCallback, tag);
 		LogWrite("Callback registered.");
 		return 0;

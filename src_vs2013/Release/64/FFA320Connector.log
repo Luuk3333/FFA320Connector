@@ -1,4 +1,4 @@
-﻿Der Buildvorgang wurde am 18.11.2017 10:18:06 gestartet.
+﻿Der Buildvorgang wurde am 18.11.2017 20:04:42 gestartet.
      1>Projekt "E:\FFA320Connector\src_vs2013\FFA320Connector.vcxproj" auf Knoten "2", Rebuild Ziel(e).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /ISDK\CHeaders\XPLM /ISDK\CHeaders\Widgets /Zi /nologo /W3 /WX- /O2 /Ob1 /D WIN32 /D NDEBUG /D _WINDOWS /D _USRDLL /D SIMDATA_EXPORTS /D IBM=1 /D XPLM200=1 /D XPLM210=1 /D _CRT_SECURE_NO_WARNINGS /D _VC80_UPGRADE=0x0600 /D _WINDLL /D _MBCS /GF /Gm- /EHsc /MT /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo".\Release\64\\" /Fd".\Release\64\vc120.pdb" /Gd /TP /errorReport:prompt FFA320Connector.cpp
@@ -20,4 +20,4 @@
 
 Build erfolgreich.
 
-Verstrichene Zeit 00:00:01.08
+Verstrichene Zeit 00:00:01.06
