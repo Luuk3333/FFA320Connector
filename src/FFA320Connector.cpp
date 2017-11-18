@@ -58,16 +58,16 @@ const int				CONDITION_NOTEQUAL = 12;
 const int				CONDITION_GREATER_EQUAL = 13;
 const int				CONDITION_LOWER_EQUAL = 14;
 
-bool					plugindisabled = FALSE;																				// True if plugin is disabled
-bool					plugininitialized = FALSE;																			// Plugin Initialized? Set when Flightloop was called.
+bool					plugindisabled = false;																				// True if plugin is disabled
+bool					plugininitialized = false;																			// Plugin Initialized? Set when Flightloop was called.
 XPLMPluginID			ffPluginID = XPLM_NO_PLUGIN_ID;
 SharedValuesInterface	ffAPI;
 int						g_menu_container_idx;																				// Menu Stuff
 XPLMMenuID				g_menu_id;																							// The menu container we'll append all our menu items to
 void					menu_handler(void *, void *);
 int						ffAPIdataversion = 0;
-bool					debugmode = FALSE;																					// Enable extensive logging?
-void*					tag = "ffa320connector";																			// ffAPI Tag (shall we change this?!)
+bool					debugmode = false;																					// Enable extensive logging?
+void*					tag;																			// ffAPI Tag (shall we change this?!)
 double					last_step;
 float					PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int counter, void * refcon);		// FlightLoop, only called once for init
 int						UniversalCommandHandler(XPLMCommandRef inCommand, XPLMCommandPhase inPhase, void * inRefcon);		// Handles all Commands
@@ -77,9 +77,9 @@ float					UniversalDataRefGET_FLOAT(void* inRefcon);															// Handles al
 void					UniversalDataRefSET_FLOAT(void* inRefcon, float inValue);											// Handles all DataRef SET-Requests for Integer-Values
 int						DrefValueInt[2000];																					// Stores the Dataref-Values (inRefcon points to here)
 float					DrefValueFloat[2000];																				// Stores the Dataref-Values (inRefcon points to here)
-bool					InternalDatarefUpdate = FALSE;																		// For recognition if it was an internal Dref update or not
+bool					InternalDatarefUpdate = false;																		// For recognition if it was an internal Dref update or not
 
-bool					DumpObjectsToLogActive = FALSE;
+bool					DumpObjectsToLogActive = false;
 void					DumpObjectsToLog();																					//Constructor
 void					DumpCommandsToLog();																				//Constructor
 void					DumpDatarefsToLog();																				//Constructor
@@ -796,8 +796,6 @@ void ReadConfig(string filename) {
 	while (std::getline(input, line))
 	{
 		objcounter++;
-		bool isCommand = false;
-		bool isInt = false;
 		int i = 0;
 
 		if (line.substr(0, 1) != "#") {
@@ -816,9 +814,6 @@ void ReadConfig(string filename) {
 					token = s.substr(0, pos);
 
 					if (i == 0)	NewObj.Type = StringToObjectType(token);
-					/*if ((i == 0) && (token == "COMMAND"))	NewObj.Type = StringToObjectType("COMMAND");
-					if ((i == 0) && (token == "DATAREF"))	NewObj.Type = StringToObjectType("DATAREF");
-					if ((i == 0) && (token == "COMDEF"))	NewObj.Type = StringToObjectType("COMDEF");*/
 
 					//Command
 					if (NewObj.Type == OBJECT_TYPE_COMMAND) {
@@ -1255,6 +1250,7 @@ float PluginCustomFlightLoopCallback(float elapsedMe, float elapsedSim, int coun
 	}
 
 	if (ffAPI.DataAddUpdate != NULL) {
+		tag = "ffa320connector";
 		ffAPI.DataAddUpdate(&ffAPIUpdateCallback, tag);
 		return 0;
 	}
