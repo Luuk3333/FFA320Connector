@@ -28,7 +28,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.1.0";																			// Plugin-Version
+string					pluginversion = "1.1.1";																			// Plugin-Version
 
 string					pluginpath;
 string					aircraftpath;
