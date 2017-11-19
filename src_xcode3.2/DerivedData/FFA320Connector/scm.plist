@@ -2,9 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>LastAccessedDate</key>
-	<date>2017-11-19T10:58:08Z</date>
-	<key>WorkspacePath</key>
-	<string>../../FFA320Connector.xcodeproj</string>
+	<key>SuppressMissingCheckoutsAlert</key>
+	<true/>
+	<key>Version</key>
+	<integer>5</integer>
 </dict>
 </plist>
