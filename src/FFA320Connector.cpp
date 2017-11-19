@@ -399,6 +399,8 @@ PLUGIN_API int XPluginStart(
 	strcpy(outName, "FFA320-Connector");
 	strcpy(outSig, "mokny.a320connector");
 	strcpy(outDesc, "Plugin to supply Commands and Datarefs for the FlightFactor A320");
+	
+	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
 	string menu_title = string("FFA320-Connector " + pluginversion);
 
