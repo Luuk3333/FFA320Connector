@@ -27,5 +27,5 @@ later.
 
 ## Building the FFA320 Connector on MacOS
 
-I am urgently searching for someone who is able to compile it
-for Mac / Linux. Leave me a message at the X-Plane forums.
+To build the FFA320 Connector on MacOS, you need Xcode 8.1
+or higher. C++11 compiler is required. 
