@@ -28,7 +28,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.1.4";																			// Plugin-Version
+string					pluginversion = "1.1.5";																			// Plugin-Version
 
 string					pluginpath;
 string					aircraftpath;
@@ -60,6 +60,9 @@ const int				CONDITION_LOWER_EQUAL = 14;
 
 bool					plugindisabled = false;																				// True if plugin is disabled
 bool					plugininitialized = false;																			// Plugin Initialized? Set when Flightloop was called.
+
+bool					defaultconfigfound = false;
+bool					customconfigfound = false;
 
 XPLMPluginID			ffPluginID = XPLM_NO_PLUGIN_ID;
 SharedValuesInterface	ffAPI;
@@ -190,8 +193,10 @@ inline bool file_exists(const std::string& name) {
 *
 */
 void get_paths() {
-	bool defaultconfigfound = false;
-	bool customconfigfound = false;
+	LogWrite("Fetching Paths");
+	defaultconfigfound = false;
+	customconfigfound = false;
+
 	defaultconfigpath = "";
 	customconfigpath = "";
 	aircraftpath = "";
@@ -201,8 +206,6 @@ void get_paths() {
 
 	char cacfilename[256] = { 0 };
 	char cacpath[1024] = { 0 };
-
-
 
 	// CONFIG.CFG
 	XPLMGetNthAircraftModel(0, cacfilename, cacpath);
@@ -216,7 +219,7 @@ void get_paths() {
 	strcat(FileNamePath, "config.cfg");
 	defaultconfigpath = string(FileNamePath);
 
-	LogWrite("-> Default Config: " + defaultconfigpath);
+	LogWrite("-> Searching Default Config at: " + defaultconfigpath);
 
 	// CUSTOM.CFG
 	XPLMGetNthAircraftModel(0, cacfilename, cacpath);
@@ -230,7 +233,7 @@ void get_paths() {
 	strcat(FileNamePath, "custom.cfg");
 	customconfigpath = string(FileNamePath);
 
-	LogWrite("-> Custom Config: " + customconfigpath);
+	LogWrite("-> Searching Custom Config at: " + customconfigpath);
 
 	/* Check in Aircraft Plugins folder */
 
@@ -400,7 +403,7 @@ PLUGIN_API int XPluginStart(
 	strcpy(outSig, "mokny.a320connector");
 	strcpy(outDesc, "Plugin to supply Commands and Datarefs for the FlightFactor A320");
 	
-	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+	XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1); // MacOS requires this 
 
 	string menu_title = string("FFA320-Connector " + pluginversion);
 
@@ -736,6 +739,8 @@ void DumpObjectsToLog() {
 *
 */
 void ReadConfigs() {
+	LogWrite("Starting Reload.");
+
 	/* Leave if plugin was disabled */
 	if (plugindisabled == true) return;
 
@@ -750,8 +755,10 @@ void ReadConfigs() {
 	}
 	DataObjects.clear();
 
-	if (defaultconfigpath != "") ReadConfig(defaultconfigpath);
-	if (customconfigpath != "") ReadConfig(customconfigpath);
+	if (defaultconfigfound == true) ReadConfig(defaultconfigpath);
+	if (customconfigfound == true) ReadConfig(customconfigpath);
+
+	LogWrite("Reload complete.");
 }
 
 
@@ -763,19 +770,15 @@ void ReadConfigs() {
 */
 void ReadConfig(string filename) {
 	
-	/* Leave if plugin was disabled */
-	if (plugindisabled == true) return;
-
-
 	ifstream input(filename.c_str());
 
 	if (!input)
 	{
-		LogWrite("==== ERROR: COULD NOT READ " + filename + " ===");
+		LogWrite(" -> ==== ERROR: COULD NOT READ " + filename + " ===");
 		return;
 	}
 	else {
-		LogWrite(" - Reading " + filename);
+		LogWrite("-> Parsing " + filename);
 	}
 
 	string line;
