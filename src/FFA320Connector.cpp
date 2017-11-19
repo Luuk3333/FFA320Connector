@@ -28,7 +28,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.1.2";																			// Plugin-Version
+string					pluginversion = "1.1.4";																			// Plugin-Version
 
 string					pluginpath;
 string					aircraftpath;
@@ -197,67 +197,46 @@ void get_paths() {
 	aircraftpath = "";
 
 	/* Getting the Aircraft Directory */
-	char cacfilename[256] = { 0 };
-	char cacpath[512] = { 0 };
-	XPLMGetNthAircraftModel(0, cacfilename, cacpath);
+	char FileNamePath[512];
 
-	aircraftpath = string(cacpath).substr(0, string(cacpath).find_last_of("\\/"));	// Remove the Filename from the complete path
+	char cacfilename[256] = { 0 };
+	char cacpath[1024] = { 0 };
+
+
 
 	// CONFIG.CFG
+	XPLMGetNthAircraftModel(0, cacfilename, cacpath);
+	XPLMExtractFileAndPath(cacpath);
+	strcpy(FileNamePath, cacpath);
+	strcat(FileNamePath, XPLMGetDirectorySeparator());
+	strcat(FileNamePath, "plugins");
+	strcat(FileNamePath, XPLMGetDirectorySeparator());
+	strcat(FileNamePath, "FFA320Connector");
+	strcat(FileNamePath, XPLMGetDirectorySeparator());
+	strcat(FileNamePath, "config.cfg");
+	defaultconfigpath = string(FileNamePath);
 
-	/* Check in Aircraft Plugins folder */
-	if (file_exists(aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "config.cfg")) {
-		defaultconfigpath = aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "config.cfg";
-		defaultconfigfound = true;
-	}
-	
-	/* Check in Default-Plugin Folder */
-	if (!defaultconfigfound) {
-		char PluginINIFile[512];
-		XPLMGetSystemPath(PluginINIFile);
-		strcat(PluginINIFile, "Resources");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "plugins");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "FFA320Connector");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "config.cfg");
-		string defaultfolderfilename = string(PluginINIFile);
-
-		/* defaultconfigpath */
-		if (file_exists(defaultfolderfilename)) {
-			defaultconfigpath = defaultfolderfilename;
-			defaultconfigfound = true;
-		}
-	}
-
-	/* Check in Aircraft Plugins folder */
-	if (file_exists(aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "custom.cfg")) {
-		customconfigpath = aircraftpath + string(XPLMGetDirectorySeparator()) + "plugins" + string(XPLMGetDirectorySeparator()) + "FFA320Connector" + string(XPLMGetDirectorySeparator()) + "custom.cfg";
-		customconfigfound = true;
-	}
+	LogWrite("-> Default Config: " + defaultconfigpath);
 
 	// CUSTOM.CFG
+	XPLMGetNthAircraftModel(0, cacfilename, cacpath);
+	XPLMExtractFileAndPath(cacpath);
+	strcpy(FileNamePath, cacpath);
+	strcat(FileNamePath, XPLMGetDirectorySeparator());
+	strcat(FileNamePath, "plugins");
+	strcat(FileNamePath, XPLMGetDirectorySeparator());
+	strcat(FileNamePath, "FFA320Connector");
+	strcat(FileNamePath, XPLMGetDirectorySeparator());
+	strcat(FileNamePath, "custom.cfg");
+	customconfigpath = string(FileNamePath);
 
-	/* Check in Default-Plugin Folder */
-	if (!customconfigfound) {
-		char PluginINIFile[512];
-		XPLMGetSystemPath(PluginINIFile);
-		strcat(PluginINIFile, "Resources");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "plugins");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "FFA320Connector");
-		strcat(PluginINIFile, XPLMGetDirectorySeparator());
-		strcat(PluginINIFile, "custom.cfg");
-		string defaultfolderfilename = string(PluginINIFile);
+	LogWrite("-> Custom Config: " + customconfigpath);
 
-		/* defaultconfigpath */
-		if (file_exists(defaultfolderfilename)) {
-			customconfigpath = defaultfolderfilename;
-			customconfigfound = true;
-		}
-	}
+	/* Check in Aircraft Plugins folder */
+
+	if (file_exists(defaultconfigpath)) defaultconfigfound = true;
+	if (file_exists(customconfigpath)) customconfigfound = true;
+
 
 	if (!defaultconfigfound && !customconfigfound) {
 		LogWrite("#####################################################");
@@ -320,7 +299,7 @@ class DataObject {
 		void initialize() {
 			/* Create the command */
 			if (Type == OBJECT_TYPE_COMMAND) {
-				LogWrite("Creating Command " + Command + " / " + to_string(WorkMode) + " / " + FFVar);
+				DebugOut("Creating Command " + Command + " / " + to_string(WorkMode) + " / " + FFVar);
 				CMD = XPLMCreateCommand(Command.c_str(), CommandName.c_str());
 				XPLMRegisterCommandHandler(CMD, UniversalCommandHandler, 1, &Value);
 				NextUpdateCycle = 0;
@@ -328,7 +307,7 @@ class DataObject {
 
 			/* Create the command to dataref */
 			if (Type == OBJECT_TYPE_COMMANDTODATAREF) {
-				LogWrite("Creating Comdef " + Command + " / " + to_string(WorkMode) + " / " + FFVar);
+				DebugOut("Creating Comdef " + Command + " / " + to_string(WorkMode) + " / " + FFVar);
 				CMD = XPLMCreateCommand(Command.c_str(), CommandName.c_str());
 				DREF = XPLMFindDataRef(DataRef.c_str());
 				XPLMRegisterCommandHandler(CMD, UniversalCommandHandler, 1, &Value);
@@ -344,7 +323,7 @@ class DataObject {
 
 				if ((DREF == NULL) || (IgnoreExistingDataRef == true)) {
 					IsExistingDataRef = false;
-					LogWrite("Creating Dataref " + DataRef + " / " + to_string(ValueType) + " / #" + to_string(RefConID) + " / " + FFVar);
+					DebugOut("Creating Dataref " + DataRef + " / " + to_string(ValueType) + " / #" + to_string(RefConID) + " / " + FFVar);
 					if (DataRefValueType == VALUE_TYPE_INT) {
 						DREF = XPLMRegisterDataAccessor(DataRef.c_str(),
 							xplmType_Int,											// The types we support
@@ -380,7 +359,7 @@ class DataObject {
 
 				} else {
 					IsExistingDataRef = true;
-					LogWrite("Using existing Dataref (READONLY) " + DataRef + " / " + to_string(ValueType) + " / #" + to_string(RefConID) + " / " + FFVar);
+					DebugOut("Using existing Dataref (READONLY) " + DataRef + " / " + to_string(ValueType) + " / #" + to_string(RefConID) + " / " + FFVar);
 				}
 
 				NextUpdateCycle = 0;
@@ -1347,5 +1326,5 @@ PLUGIN_API void XPluginReceiveMessage(
 	int				inMessage,
 	void *			inParam)
 {
-	LogWrite("Message Received.");
+	DebugOut("Message Received.");
 }
