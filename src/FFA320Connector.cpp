@@ -28,7 +28,7 @@
 
 using namespace std;
 
-string					pluginversion = "1.1.5";																			// Plugin-Version
+string					pluginversion = "1.1.6";																			// Plugin-Version
 
 string					pluginpath;
 string					aircraftpath;
@@ -258,6 +258,7 @@ class DataObject {
 
 	public:
 		string		FFVar;					// FlightFactor - Object
+		bool		SyntaxError;			// SyntaxError
 		int			FFID;					// Object ID
 		int			Type;					// COMMAND or DATAREF
 		int			WorkMode;				// SET/CYCLE/STEP/CLICK
@@ -285,6 +286,7 @@ class DataObject {
 		int			Phase;					// Button-Phase
 		int			RefConID;				// RefconID - The link between the DREF and UniversalGET
 		float		DataRefMultiplier;		// Dataref Multiplier
+		int			DataRefOffset = -1;
 
 		int			VarArrValues = 0;			
 		int			VarArrI[100];
@@ -800,99 +802,124 @@ void ReadConfig(string filename) {
 				DataObject NewObj;	// Create a new Data Object for the Command / Dataref
 
 				NewObj.DataRefMultiplier = 1;	// Sets the Multiplier to 1 - may be changed later on
+				NewObj.SyntaxError = false;
 
 				while ((pos = s.find(delimiter)) != std::string::npos) {
-					token = s.substr(0, pos);
+					try {
+						token = s.substr(0, pos);
 
-					if (i == 0)	NewObj.Type = StringToObjectType(token);
+						if (i == 0)	NewObj.Type = StringToObjectType(token);
 
-					//Command
-					if (NewObj.Type == OBJECT_TYPE_COMMAND) {
-						if (i == 1) NewObj.WorkMode = StringToWorkMode(token);
-						if (i == 2) NewObj.ValueType = StringToValueType(token);
-						if (i == 3) NewObj.FFVar = token;
-						if (i == 4) NewObj.Command = token;
-						if (i == 5) NewObj.CommandName = token;
-						if (i == 6) {
-							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
-							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
-						}
-						if (i == 7) NewObj.FFID = stoi(token);
-						if (i == 8) NewObj.FFReference = token;
-						if (i == 9) NewObj.FFReferenceID = stoi(token);
-						if (i == 10) {
-							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.MinValue = stoi(token);
-							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.MinValueFloat = stof(token);
-						}
-						if (i == 11) {
-							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.MaxValue = stoi(token);
-							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.MaxValueFloat = stof(token);
-						}
-						if (i == 12) NewObj.SpeedRef = stoi(token);
-						if (i == 13) NewObj.Phase = stoi(token);
-
-						NewObj.NeedsUpdate = false;
-					}
-
-					//Command to Dataref
-					if (NewObj.Type == OBJECT_TYPE_COMMANDTODATAREF) {
-						if (i == 1) NewObj.WorkMode = StringToWorkMode(token);
-						if (i == 2) NewObj.ValueType = StringToValueType(token);
-						if (i == 3) NewObj.Phase = stoi(token);
-						if (i == 4) NewObj.Command = token;
-						if (i == 5) NewObj.CommandName = token;
-						if (i == 6) NewObj.DataRef = token;
-
-						if (i == 7) {
-							if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
-							if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
-						}
-						if (i >= 7){
-							if (token != "") {
-								if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.VarArrI[i - 7] = stoi(token);
-								if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.VarArrF[i - 7] = stof(token);
-								NewObj.VarArrValues++;
+						//Command
+						if (NewObj.Type == OBJECT_TYPE_COMMAND) {
+							if (i == 1) NewObj.WorkMode = StringToWorkMode(token);
+							if (i == 2) NewObj.ValueType = StringToValueType(token);
+							if (i == 3) NewObj.FFVar = token;
+							if (i == 4) NewObj.Command = token;
+							if (i == 5) NewObj.CommandName = token;
+							if (i == 6) {
+								if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
+								if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
 							}
+							if (i == 7) NewObj.FFID = stoi(token);
+							if (i == 8) NewObj.FFReference = token;
+							if (i == 9) NewObj.FFReferenceID = stoi(token);
+							if (i == 10) {
+								if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.MinValue = stoi(token);
+								if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.MinValueFloat = stof(token);
+							}
+							if (i == 11) {
+								if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.MaxValue = stoi(token);
+								if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.MaxValueFloat = stof(token);
+							}
+							if (i == 12) NewObj.SpeedRef = stoi(token);
+							if (i == 13) NewObj.Phase = stoi(token);
+
+							NewObj.NeedsUpdate = false;
 						}
-						
-						NewObj.NeedsUpdate = false;
+
+						//Command to Dataref
+						if (NewObj.Type == OBJECT_TYPE_COMMANDTODATAREF) {
+							if (i == 1) NewObj.WorkMode = StringToWorkMode(token);
+							if (i == 2) NewObj.ValueType = StringToValueType(token);
+							if (i == 3) NewObj.Phase = stoi(token);
+							if (i == 4) NewObj.Command = token;
+							if (i == 5) NewObj.CommandName = token;
+							if (i == 6) NewObj.DataRef = token;
+
+							if (i == 7) {
+								if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
+								if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
+							}
+							if (i >= 7){
+								if (token != "") {
+									if (NewObj.ValueType == VALUE_TYPE_INT) NewObj.VarArrI[i - 7] = stoi(token);
+									if (NewObj.ValueType == VALUE_TYPE_FLOAT) NewObj.VarArrF[i - 7] = stof(token);
+									NewObj.VarArrValues++;
+								}
+							}
+
+							NewObj.NeedsUpdate = false;
+						}
+
+						//Dataref
+						if (NewObj.Type == OBJECT_TYPE_DATAREF) {
+							if (i == 1) NewObj.ValueType = StringToValueType(token);
+							if (i == 2) NewObj.FFVar = token;
+							if (i == 3) NewObj.FFID = stoi(token);
+							if (i == 4) {
+								size_t first = token.find("[");
+								size_t last = token.find("]");
+								if ((first != string::npos) && (first != string::npos)) {
+									NewObj.DataRefOffset = stoi(token.substr(first + 1, last - first - 1));
+									NewObj.DataRef = token.substr(0, first);
+									DebugOut("ARRAY: " + NewObj.DataRef + " -> " + to_string(NewObj.DataRefOffset) + " -> " + to_string(first) + " " + to_string(last));
+								}
+								else {
+									NewObj.DataRef = token;
+								}
+							}
+							if (i == 5) NewObj.DataRefValueType = StringToValueType(token);
+							if ((i == 6) && (token == "IGNOREEXISTING")) NewObj.IgnoreExistingDataRef = true;
+							if ((i == 7) && (token != "")) NewObj.DataRefMultiplier = stof(token);
+
+							if (NewObj.DataRef == "NORM") {
+								string normdref = NewObj.FFVar;
+								replace(normdref.begin(), normdref.end(), '.', '/');
+								NewObj.DataRef = "MOKNY/FFA320/" + normdref;
+							}
+
+							if (i == 8) NewObj.DatarefCondition = StringToCondition(token);
+							if (i == 9) NewObj.DatarefConditionValue = stof(token);
+							if (i == 10) {
+								if (NewObj.DataRefValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
+								if (NewObj.DataRefValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
+							}
+
+							NewObj.NeedsUpdate = true;
+						}
+
+
+						s.erase(0, pos + delimiter.length());
+						i++;
+					}
+					catch (...) {
+						s.erase(0, pos + delimiter.length());
+						i++;
+						NewObj.SyntaxError = true;
+						LogWrite("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+						LogWrite("+ SYNTAX ERROR: Line: " + to_string(objcounter) + " Token: " + token);
+						LogWrite("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 					}
 
-					//Dataref
-					if (NewObj.Type == OBJECT_TYPE_DATAREF) {
-						if (i == 1) NewObj.ValueType = StringToValueType(token);
-						if (i == 2) NewObj.FFVar = token;
-						if (i == 3) NewObj.FFID = stoi(token);
-						if (i == 4) NewObj.DataRef = token;
-						if (i == 5) NewObj.DataRefValueType = StringToValueType(token);
-						if ((i == 6) && (token == "IGNOREEXISTING")) NewObj.IgnoreExistingDataRef = true;
-						if ((i == 7) && (token != "")) NewObj.DataRefMultiplier = stof(token); 
-
-						if (NewObj.DataRef == "NORM") {
-							string normdref = NewObj.FFVar;
-							replace(normdref.begin(), normdref.end(), '.', '/');
-							NewObj.DataRef = "MOKNY/FFA320/" + normdref;
-						}
-
-						if (i == 8) NewObj.DatarefCondition = StringToCondition(token);
-						if (i == 9) NewObj.DatarefConditionValue = stof(token);
-						if (i == 10) {
-							if (NewObj.DataRefValueType == VALUE_TYPE_INT) NewObj.Value = stoi(token);
-							if (NewObj.DataRefValueType == VALUE_TYPE_FLOAT) NewObj.ValueFloat = stof(token);
-						}
-
-						NewObj.NeedsUpdate = true;
-					}
-
-
-					s.erase(0, pos + delimiter.length());
-					i++;
 				}
 
 				if (i > 1) {
-					NewObj.RefConID = datarefcounter++;
-					NewObj.initialize();
-					DataObjects.push_back(NewObj);
+					if (NewObj.SyntaxError == false) {
+						NewObj.RefConID = datarefcounter++;
+						NewObj.initialize();
+						DataObjects.push_back(NewObj);
+					}
 				}
 			}
 		}
@@ -1128,7 +1155,13 @@ void ffAPIUpdateCallback(double step, void *tag) {
 						DebugOut(" -> INT TO INT");
 						void* curval;
 						ffAPI.ValueGet(iDataObjects->FFID, &curval);
-						XPLMSetDatai(iDataObjects->DREF, (int)(size_t)curval * iDataObjects->DataRefMultiplier);
+						if (iDataObjects->DataRefOffset < 0) {
+							XPLMSetDatai(iDataObjects->DREF, (int)(size_t)curval * iDataObjects->DataRefMultiplier);
+						}
+						else {
+							int idata = (int)curval * iDataObjects->DataRefMultiplier;
+							XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+						}
 					}
 
 					if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
@@ -1138,13 +1171,25 @@ void ffAPIUpdateCallback(double step, void *tag) {
 							DebugOut(" -> INT TO FLOAT");
 							int icurval;
 							ffAPI.ValueGet(iDataObjects->FFID, &icurval);
-							XPLMSetDataf(iDataObjects->DREF, (float)icurval * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefOffset < 0) {
+								XPLMSetDataf(iDataObjects->DREF, (float)icurval * iDataObjects->DataRefMultiplier);
+							}
+							else {
+								float idata = (float)icurval * iDataObjects->DataRefMultiplier;
+								XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+							}
 						}
 						else if (iDataObjects->ValueType == VALUE_TYPE_FLOAT) {
 							DebugOut(" -> FLOAT TO FLOAT");
 							float fcurval;
 							ffAPI.ValueGet(iDataObjects->FFID, &fcurval);
-							XPLMSetDataf(iDataObjects->DREF, fcurval * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefOffset < 0) {
+								XPLMSetDataf(iDataObjects->DREF, fcurval * iDataObjects->DataRefMultiplier);
+							}
+							else {
+								float idata = fcurval * iDataObjects->DataRefMultiplier;
+								XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+							}
 						}
 
 					}
