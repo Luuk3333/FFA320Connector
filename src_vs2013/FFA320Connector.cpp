@@ -1159,7 +1159,7 @@ void ffAPIUpdateCallback(double step, void *tag) {
 							XPLMSetDatai(iDataObjects->DREF, (int)(size_t)curval * iDataObjects->DataRefMultiplier);
 						}
 						else {
-							int idata = (int)curval * iDataObjects->DataRefMultiplier;
+							int idata = (int)(size_t)curval * iDataObjects->DataRefMultiplier;
 							XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
 						}
 					}
@@ -1175,7 +1175,7 @@ void ffAPIUpdateCallback(double step, void *tag) {
 								XPLMSetDataf(iDataObjects->DREF, (float)icurval * iDataObjects->DataRefMultiplier);
 							}
 							else {
-								float idata = (float)icurval * iDataObjects->DataRefMultiplier;
+								float idata = (float)(size_t)icurval * iDataObjects->DataRefMultiplier;
 								XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
 							}
 						}
@@ -1203,43 +1203,139 @@ void ffAPIUpdateCallback(double step, void *tag) {
 
 					if (iDataObjects->DatarefCondition == CONDITION_EQUALS) {
 						if ((int)(size_t)curval == iDataObjects->DatarefConditionValue) {
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									int idata = iDataObjects->Value * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									float idata = iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_GREATER) {
 						if ((int)(size_t)curval > iDataObjects->DatarefConditionValue) {
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									int idata = iDataObjects->Value * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									float idata = iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_LOWER) {
 						if ((int)(size_t)curval < iDataObjects->DatarefConditionValue) {
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									int idata = iDataObjects->Value * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									float idata = iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_NOTEQUAL) {
 						if ((int)(size_t)curval != iDataObjects->DatarefConditionValue) {
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									int idata = iDataObjects->Value * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									float idata = iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_GREATER_EQUAL) {
 						if ((int)(size_t)curval >= iDataObjects->DatarefConditionValue) {
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									int idata = iDataObjects->Value * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									float idata = iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
 						}
 					}
 
 					if (iDataObjects->DatarefCondition == CONDITION_LOWER_EQUAL) {
 						if ((int)(size_t)curval <= iDataObjects->DatarefConditionValue) {
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
-							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_INT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDatai(iDataObjects->DREF, iDataObjects->Value * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									int idata = iDataObjects->Value * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavi(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
+							if (iDataObjects->DataRefValueType == VALUE_TYPE_FLOAT) {
+								if (iDataObjects->DataRefOffset < 0) {
+									XPLMSetDataf(iDataObjects->DREF, iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier);
+								}
+								else {
+									float idata = iDataObjects->ValueFloat * iDataObjects->DataRefMultiplier;
+									XPLMSetDatavf(iDataObjects->DREF, &idata, iDataObjects->DataRefOffset, 1);
+								}
+							}
 						}
 					}
 					
